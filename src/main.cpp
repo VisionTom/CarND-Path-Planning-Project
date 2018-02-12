@@ -8,6 +8,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
+#include "pathplanner.h"
 
 using namespace std;
 
@@ -165,6 +166,7 @@ vector<double> getXY(double s, double d, const vector<double> &maps_s, const vec
 
 int main() {
   uWS::Hub h;
+  PathPlanner pp;
 
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
   vector<double> map_waypoints_x;
@@ -241,6 +243,16 @@ int main() {
 
           	vector<double> next_x_vals;
           	vector<double> next_y_vals;
+
+          	double dist_inc = 0.5;
+		    for(int i = 0; i < 50; i++)
+		    {
+		    	double next_s = car_s+(i+1)*dist_inc;
+		    	double next_d = 6;
+		    	vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+		        next_x_vals.push_back(xy[0]);
+		        next_y_vals.push_back(xy[1]);
+		    }
 
 
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
