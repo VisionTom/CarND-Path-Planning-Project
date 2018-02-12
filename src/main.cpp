@@ -10,15 +10,13 @@
 #include "json.hpp"
 #include "pathplanner.h"
 
+enum Mode { STRAIGHT, CIRCLE, NORMAL, FOLLOWLANE };
+
 using namespace std;
 
 // for convenience
 using json = nlohmann::json;
 
-// For converting back and forth between radians and degrees.
-constexpr double pi() { return M_PI; }
-double deg2rad(double x) { return x * pi() / 180; }
-double rad2deg(double x) { return x * 180 / pi(); }
 
 // Checks if the SocketIO event has JSON data.
 // If there is data the JSON object in string format will be returned,
@@ -73,9 +71,9 @@ int NextWaypoint(double x, double y, double theta, const vector<double> &maps_x,
 	double heading = atan2((map_y-y),(map_x-x));
 
 	double angle = fabs(theta-heading);
-  angle = min(2*pi() - angle, angle);
+  angle = min(2*M_PI - angle, angle);
 
-  if(angle > pi()/4)
+  if(angle > M_PI/4)
   {
     closestWaypoint++;
   if (closestWaypoint == maps_x.size())
@@ -136,38 +134,39 @@ vector<double> getFrenet(double x, double y, double theta, const vector<double> 
 
 }
 
-// Transform from Frenet s,d coordinates to Cartesian x,y
-vector<double> getXY(double s, double d, const vector<double> &maps_s, const vector<double> &maps_x, const vector<double> &maps_y)
-{
-	int prev_wp = -1;
 
-	while(s > maps_s[prev_wp+1] && (prev_wp < (int)(maps_s.size()-1) ))
-	{
-		prev_wp++;
-	}
+PathPlanner *pp;
 
-	int wp2 = (prev_wp+1)%maps_x.size();
-
-	double heading = atan2((maps_y[wp2]-maps_y[prev_wp]),(maps_x[wp2]-maps_x[prev_wp]));
-	// the x,y,s along the segment
-	double seg_s = (s-maps_s[prev_wp]);
-
-	double seg_x = maps_x[prev_wp]+seg_s*cos(heading);
-	double seg_y = maps_y[prev_wp]+seg_s*sin(heading);
-
-	double perp_heading = heading-pi()/2;
-
-	double x = seg_x + d*cos(perp_heading);
-	double y = seg_y + d*sin(perp_heading);
-
-	return {x,y};
-
-}
-
-int main() {
+int main(int argc, char *argv[]) {
   uWS::Hub h;
-  PathPlanner pp;
+  pp = new PathPlanner();
+  Mode mode;
 
+  //Default mode without any parameters
+  if(argc == 0){
+    mode = NORMAL;  
+  }
+  else{
+    while ((++argv)[0]){
+      if (argv[0][0] == '-' ) {
+        switch (argv[0][1]) {
+          default:
+            mode = NORMAL;
+            break;
+          case 's':
+            mode = STRAIGHT;
+            break;
+          case 'c':
+            mode = CIRCLE;
+            break;
+          case 'f':
+            mode = FOLLOWLANE;
+            break;
+        }
+      }
+    }
+  }
+  
   // Load up map values for waypoint's x,y,s and d normalized normal vectors
   vector<double> map_waypoints_x;
   vector<double> map_waypoints_y;
@@ -202,7 +201,10 @@ int main() {
   	map_waypoints_dy.push_back(d_y);
   }
 
-  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  //Set Map Parameter
+  pp->setParameters(map_waypoints_x,map_waypoints_y,map_waypoints_s,map_waypoints_dx,map_waypoints_dy);
+
+  h.onMessage([&map_waypoints_x,&map_waypoints_y,&map_waypoints_s,&map_waypoints_dx,&map_waypoints_dy,&mode](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -210,54 +212,31 @@ int main() {
     //auto sdata = string(data).substr(0, length);
     //cout << sdata << endl;
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
-
+      
       auto s = hasData(data);
 
       if (s != "") {
-        auto j = json::parse(s);
+        json j = json::parse(s);
         
         string event = j[0].get<string>();
         
         if (event == "telemetry") {
           // j[1] is the data JSON object
-          
-        	// Main car's localization Data
-          	double car_x = j[1]["x"];
-          	double car_y = j[1]["y"];
-          	double car_s = j[1]["s"];
-          	double car_d = j[1]["d"];
-          	double car_yaw = j[1]["yaw"];
-          	double car_speed = j[1]["speed"];
-
-          	// Previous path data given to the Planner
-          	auto previous_path_x = j[1]["previous_path_x"];
-          	auto previous_path_y = j[1]["previous_path_y"];
-          	// Previous path's end s and d values 
-          	double end_path_s = j[1]["end_path_s"];
-          	double end_path_d = j[1]["end_path_d"];
-
-          	// Sensor Fusion Data, a list of all other cars on the same side of the road.
-          	auto sensor_fusion = j[1]["sensor_fusion"];
-
+        	
           	json msgJson;
 
-          	vector<double> next_x_vals;
-          	vector<double> next_y_vals;
-
-          	double dist_inc = 0.5;
-		    for(int i = 0; i < 50; i++)
-		    {
-		    	double next_s = car_s+(i+1)*dist_inc;
-		    	double next_d = 6;
-		    	vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-		        next_x_vals.push_back(xy[0]);
-		        next_y_vals.push_back(xy[1]);
-		    }
-
-
+            pp->extractParametersFromJson(j);
+            
+            switch(mode){
+              case STRAIGHT: pp->driveStraightLine(); break;
+              case CIRCLE: pp->driveCircles(); break;
+              case NORMAL: pp->driveCircles(); break;
+              case FOLLOWLANE: pp->followLane(); break;
+            }
+                      
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
-          	msgJson["next_x"] = next_x_vals;
-          	msgJson["next_y"] = next_y_vals;
+          	msgJson["next_x"] = pp->get_next_x_vals();
+          	msgJson["next_y"] = pp->get_next_y_vals();
 
           	auto msg = "42[\"control\","+ msgJson.dump()+"]";
 

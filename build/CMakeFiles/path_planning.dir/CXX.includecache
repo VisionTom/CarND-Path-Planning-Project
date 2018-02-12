@@ -772,6 +772,16 @@ lapacke_mangling.h
 
 /home/weedjo/Udacity/Nanodegree_SelfDrivingCar_Term3/CarND-Path-Planning-Project/src/Eigen-3.3/Eigen/src/plugins/MatrixCwiseUnaryOps.h
 
+/home/weedjo/Udacity/Nanodegree_SelfDrivingCar_Term3/CarND-Path-Planning-Project/src/helper.cpp
+helper.h
+/home/weedjo/Udacity/Nanodegree_SelfDrivingCar_Term3/CarND-Path-Planning-Project/src/helper.h
+
+/home/weedjo/Udacity/Nanodegree_SelfDrivingCar_Term3/CarND-Path-Planning-Project/src/helper.h
+math.h
+-
+vector
+-
+
 /home/weedjo/Udacity/Nanodegree_SelfDrivingCar_Term3/CarND-Path-Planning-Project/src/json.hpp
 algorithm
 -
@@ -857,6 +867,16 @@ pathplanner.h
 /home/weedjo/Udacity/Nanodegree_SelfDrivingCar_Term3/CarND-Path-Planning-Project/src/pathplanner.h
 iostream
 -
+math.h
+-
 
 /home/weedjo/Udacity/Nanodegree_SelfDrivingCar_Term3/CarND-Path-Planning-Project/src/pathplanner.h
+json.hpp
+/home/weedjo/Udacity/Nanodegree_SelfDrivingCar_Term3/CarND-Path-Planning-Project/src/json.hpp
+helper.h
+/home/weedjo/Udacity/Nanodegree_SelfDrivingCar_Term3/CarND-Path-Planning-Project/src/helper.h
+pathplanner.h
+/home/weedjo/Udacity/Nanodegree_SelfDrivingCar_Term3/CarND-Path-Planning-Project/src/pathplanner.h
+vector
+-
 
