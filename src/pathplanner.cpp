@@ -6,6 +6,7 @@
 double deg2rad(double x) { return x * M_PI / 180; }
 double rad2deg(double x) { return x * 180 / M_PI; }
 
+
 PathPlanner::PathPlanner()
 {
 }
@@ -59,11 +60,11 @@ void PathPlanner::extractParametersFromJson(json j){
 
 //Test#1: Simply drive in a straight line 
 void PathPlanner::driveStraightLine(){
-	double dist_inc = 0.5;
-    for(int i = 0; i < 50; i++)
+	
+    for(int i = 0; i < FUTURE_PATH_SIZE; i++)
     {
-          next_x_vals.push_back(car_x+(dist_inc*i)*cos(deg2rad(car_yaw)));
-          next_y_vals.push_back(car_y+(dist_inc*i)*sin(deg2rad(car_yaw)));
+          next_x_vals.push_back(car_x+(DIST_INC*i)*cos(deg2rad(car_yaw)));
+          next_y_vals.push_back(car_y+(DIST_INC*i)*sin(deg2rad(car_yaw)));
     }
 }
 
@@ -96,64 +97,123 @@ void PathPlanner::driveCircles(){
 	  angle = atan2(pos_y-pos_y2,pos_x-pos_x2);
 	}
 
-	double dist_inc = 0.5;
-	for(int i = 0; i < 50-path_size; i++)
+
+	for(int i = 0; i < FUTURE_PATH_SIZE-path_size; i++)
 	{    
-	  next_x_vals.push_back(pos_x+(dist_inc)*cos(angle+(i+1)*(M_PI/100)));
-	  next_y_vals.push_back(pos_y+(dist_inc)*sin(angle+(i+1)*(M_PI/100)));
-	  pos_x += (dist_inc)*cos(angle+(i+1)*(M_PI/100));
-	  pos_y += (dist_inc)*sin(angle+(i+1)*(M_PI/100));
+	  next_x_vals.push_back(pos_x+(DIST_INC)*cos(angle+(i+1)*(M_PI/100)));
+	  next_y_vals.push_back(pos_y+(DIST_INC)*sin(angle+(i+1)*(M_PI/100)));
+	  pos_x += (DIST_INC)*cos(angle+(i+1)*(M_PI/100));
+	  pos_y += (DIST_INC)*sin(angle+(i+1)*(M_PI/100));
 	}
 }
 
 //Test #3: Follow the current line. Problem: Harsh turns cause high jerks
-void PathPlanner::followLane(){
-	double dist_inc = 0.4;
-	for(int i = 0; i < 50; i++)
+void PathPlanner::followLane(bool splinesActivated){
+
+	for(int i = 0; i < FUTURE_PATH_SIZE; i++)
     {
-    	double next_s = car_s+(i+1)*dist_inc;
+    	double next_s = car_s+(i+1)*DIST_INC;
     	double next_d = 6;
     	vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
         next_x_vals.push_back(xy[0]);
         next_y_vals.push_back(xy[1]);
     }
+
+    if(splinesActivated){
+    	smooth_with_Splines();
+    }
 }
 
+void PathPlanner::global2local(){
+}
+
+void PathPlanner::local2global(){
+	
+}
 //Test #4: Follow the current line using Splines
-void PathPlanner::followLane_with_Splines(){
-   
-   followLane();
+void PathPlanner::smooth_with_Splines(){
    
    //Define 3 anchor points for calculating smooth spline
 
    double anchorPoint_past_x;
    double anchorPoint_past_y;
+   
+   vector<double> anchorPoints_x;
+   vector<double> anchorPoints_y;
+   
+   double previous_size = previous_path_x.size();
 
-   if(previous_path_x.size()>1){
-	   anchorPoint_past_x = previous_path_x[0];
-	   anchorPoint_past_y = previous_path_y[0];
+   //Previous anchor points
+   if(previous_size>2){
+	   //anchorPoints_x.push_back(previous_path_x[0]);				  //First Element x
+	   //anchorPoints_x.push_back(previous_path_x[previous_size/2]);  //Middle Element x
+	   anchorPoints_x.push_back(previous_path_x[previous_size-1]);  //Last Element x
+
+	   //anchorPoints_y.push_back(previous_path_y[0]);				  //First Element 
+	   //anchorPoints_y.push_back(previous_path_y[previous_size/2]);  //Middle Element 
+	   anchorPoints_y.push_back(previous_path_y[previous_size-1]);  //Last Element 
    }
    else{
-   	   anchorPoint_past_x = next_x_vals[0];
-   	   anchorPoint_past_y = next_y_vals[0];
+		anchorPoints_x.push_back(next_x_vals[0]);			//First Element	x
+		anchorPoints_y.push_back(next_y_vals[0]);			//First Element y
    }
-
-   double anchorPoint_middle_x = next_x_vals[next_x_vals.size()/2-1];
-   double anchorPoint_middle_y = next_y_vals[next_y_vals.size()/2-1];
-
-   double anchorPoint_end_x = next_x_vals[next_x_vals.size()-1];
-   double anchorPoint_end_y = next_y_vals[next_y_vals.size()-1];
-
-   vector<double> anchorPoints_x(3);
-   anchorPoints_x = {anchorPoint_past_x, anchorPoint_middle_x, anchorPoint_end_x};
-
-   vector<double> anchorPoints_y(3);
-   anchorPoints_y = {anchorPoint_past_y, anchorPoint_middle_y, anchorPoint_end_y};
    
+   double next_size = next_x_vals.size();
+
+   //Future anchor points
+   anchorPoints_x.push_back(next_x_vals[next_size/2]);	//Middle Element x
+   anchorPoints_x.push_back(next_x_vals[next_size-1]);	//Last Element x
+
+   anchorPoints_y.push_back(next_y_vals[next_size/2]);	//Middle Element y 
+   anchorPoints_y.push_back(next_y_vals[next_size-1]);	//Last Element y
+
+
+   //Transform from global to local
+   double ref_x = previous_path_x[previous_size-1];
+   double ref_y = previous_path_y[previous_size-1];
+
+   double ref_x_prev = previous_path_x[previous_size-2];
+   double ref_y_prev = previous_path_y[previous_size-2];
+
+   double ref_yaw = atan2(ref_y-ref_y_prev, ref_x-ref_x_prev);
+
+   for(int i=0;i<anchorPoints_x.size();i++){
+	   anchorPoints_x[i] = (anchorPoints_x[i]*cos(0-ref_yaw)-anchorPoints_y[i]*sin(0-ref_yaw)) - ref_x;
+	   anchorPoints_y[i] = (anchorPoints_x[i]*sin(0-ref_yaw)-anchorPoints_x[i]*cos(0-ref_yaw)) - ref_y;
+   }
+/*
+   //Calculate Spine
    tk::spline s;
    s.set_points(anchorPoints_x,anchorPoints_y);
 
-   for(int i=0;i<next_x_vals.size();i++){
-   		next_y_vals[i] = s(next_x_vals[i]);
+   //Calculate equally distributed x-values
+   double x_step = anchorPoints_x.back() / next_x_vals.size();
+   double x_point = 0;
+
+   //Calculate smoothed y-values from spine, transform back and copy to next_y_val
+   for(int i=0;i<next_x_vals.size();i++){		
+   		double y_point = s(x_point);		//smoothed y values from spine
+		
+		//Transform from local to global
+   		next_x_vals[i] = (x_point * cos(ref_yaw)-y_point*sin(ref_yaw)) + ref_x;
+   		next_y_vals[i] = (x_point * sin(ref_yaw)-y_point*cos(ref_yaw)) + ref_y;
+
+   		x_point += x_step;
    }
+*/
+   cout << "ANKER_X: ";
+   for (auto i = anchorPoints_x.begin(); i != anchorPoints_x.end(); ++i)
+   		cout << *i << ' ';
+
+   cout << "\nANKER_y: ";
+   for (auto i = anchorPoints_y.begin(); i != anchorPoints_y.end(); ++i)
+   		cout << *i << ' ';
+
+   cout << "\nCar_x:" << car_x << "    car_y:" << car_y << "    car_yaw:" << car_yaw << "\n\n";
+   
 }
+
+//ToDo 
+//1. Lokale Koordinaten
+//2. Smoothing verbessern (z.B. indem du x Koordinaten nochmal sauber rechnest)
+//3. FSM

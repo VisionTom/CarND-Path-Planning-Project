@@ -18,14 +18,20 @@ class PathPlanner
 
         void driveStraightLine();
         void driveCircles();
-        void followLane();  
-        void followLane_with_Splines();
+        void followLane(bool splinesActivated);  
+        void smooth_with_Splines();
         
         vector<double> get_next_x_vals();
         vector<double> get_next_y_vals();
 
     private:   	
       	//waypoints
+      	void global2local();
+      	void local2global();
+
+      	const double DIST_INC = 0.4; 
+      	const int FUTURE_PATH_SIZE = 50;
+
 		vector<double> map_waypoints_x;
 		vector<double> map_waypoints_y;
 		vector<double> map_waypoints_s;
