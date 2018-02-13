@@ -60,7 +60,14 @@ void PathPlanner::extractParametersFromJson(json j){
 
 //Test#1: Simply drive in a straight line 
 void PathPlanner::driveStraightLine(){
-	
+	cout << "car_x: " << car_x << endl;
+	for(int i=0;i<previous_path_x.size();i++){
+		cout << "previous_path_" << i << ": " << previous_path_x[i] << endl;
+	}
+	for(int i=0;i<next_x_vals.size();i++){
+		cout << "next_x_vals_" << i << "   x: " << next_x_vals[i] << "    y: " << next_y_vals[i] << endl;
+	}
+
     for(int i = 0; i < FUTURE_PATH_SIZE; i++)
     {
           next_x_vals.push_back(car_x+(DIST_INC*i)*cos(deg2rad(car_yaw)));
@@ -132,85 +139,102 @@ void PathPlanner::local2global(){
 }
 //Test #4: Follow the current line using Splines
 void PathPlanner::smooth_with_Splines(){
-   
-   //Define 3 anchor points for calculating smooth spline
 
-   double anchorPoint_past_x;
-   double anchorPoint_past_y;
-   
-   vector<double> anchorPoints_x;
-   vector<double> anchorPoints_y;
-   
+
+   cout << "Test1" << endl;
+
    double previous_size = previous_path_x.size();
 
-   //Previous anchor points
    if(previous_size>2){
-	   //anchorPoints_x.push_back(previous_path_x[0]);				  //First Element x
-	   //anchorPoints_x.push_back(previous_path_x[previous_size/2]);  //Middle Element x
-	   anchorPoints_x.push_back(previous_path_x[previous_size-1]);  //Last Element x
+   	   cout << "car_x: " << car_x << endl;
+   	   for(int i=0;i<next_x_vals.size();i++){
+   	   		cout << "previous_path_" << i << ": " << previous_path_x[i] << endl;
+   	   }
+	   for(int i=0;i<next_x_vals.size();i++){
+	   		cout << "next_x_vals_" << i << "   x: " << next_x_vals[i] << "    y: " << next_y_vals[i] << endl;
+	   }
 
-	   //anchorPoints_y.push_back(previous_path_y[0]);				  //First Element 
-	   //anchorPoints_y.push_back(previous_path_y[previous_size/2]);  //Middle Element 
-	   anchorPoints_y.push_back(previous_path_y[previous_size-1]);  //Last Element 
-   }
-   else{
-		anchorPoints_x.push_back(next_x_vals[0]);			//First Element	x
-		anchorPoints_y.push_back(next_y_vals[0]);			//First Element y
-   }
-   
-   double next_size = next_x_vals.size();
+	   //Define 3 anchor points for calculating smooth spline
+	   
+	   vector<double> anchorPoints_x;
+	   vector<double> anchorPoints_y;
 
-   //Future anchor points
-   anchorPoints_x.push_back(next_x_vals[next_size/2]);	//Middle Element x
-   anchorPoints_x.push_back(next_x_vals[next_size-1]);	//Last Element x
+	   //Previous anchor points
+	   if(previous_size>2){
+		   //anchorPoints_x.push_back(previous_path_x[0]);				  //First Element x
+		   //anchorPoints_x.push_back(previous_path_x[previous_size/2]);  //Middle Element x
+		   anchorPoints_x.push_back(previous_path_x[previous_size-1]);  //Last Element x
 
-   anchorPoints_y.push_back(next_y_vals[next_size/2]);	//Middle Element y 
-   anchorPoints_y.push_back(next_y_vals[next_size-1]);	//Last Element y
+		   //anchorPoints_y.push_back(previous_path_y[0]);				  //First Element 
+		   //anchorPoints_y.push_back(previous_path_y[previous_size/2]);  //Middle Element 
+		   anchorPoints_y.push_back(previous_path_y[previous_size-1]);  //Last Element 
+	   }
+	   /*else{
+			anchorPoints_x.push_back(next_x_vals[0]);			//First Element	x
+			anchorPoints_y.push_back(next_y_vals[0]);			//First Element y
+	   }*/
+	   
+	   double next_size = next_x_vals.size();
+
+	   //Future anchor points
+	   anchorPoints_x.push_back(next_x_vals[next_size/2]);	//Middle Element x
+	   anchorPoints_x.push_back(next_x_vals[next_size-1]);	//Last Element x
+
+	   anchorPoints_y.push_back(next_y_vals[next_size/2]);	//Middle Element y 
+	   anchorPoints_y.push_back(next_y_vals[next_size-1]);	//Last Element y
 
 
-   //Transform from global to local
-   double ref_x = previous_path_x[previous_size-1];
-   double ref_y = previous_path_y[previous_size-1];
+	   //Transform from global to local
+	   double ref_x = previous_path_x[previous_size-1];
+	   double ref_y = previous_path_y[previous_size-1];
 
-   double ref_x_prev = previous_path_x[previous_size-2];
-   double ref_y_prev = previous_path_y[previous_size-2];
+	   double ref_x_prev = previous_path_x[previous_size-2];
+	   double ref_y_prev = previous_path_y[previous_size-2];
 
-   double ref_yaw = atan2(ref_y-ref_y_prev, ref_x-ref_x_prev);
+	   double ref_yaw = atan2(ref_y-ref_y_prev, ref_x-ref_x_prev);
 
-   for(int i=0;i<anchorPoints_x.size();i++){
-	   anchorPoints_x[i] = (anchorPoints_x[i]*cos(0-ref_yaw)-anchorPoints_y[i]*sin(0-ref_yaw)) - ref_x;
-	   anchorPoints_y[i] = (anchorPoints_x[i]*sin(0-ref_yaw)-anchorPoints_x[i]*cos(0-ref_yaw)) - ref_y;
-   }
-/*
-   //Calculate Spine
-   tk::spline s;
-   s.set_points(anchorPoints_x,anchorPoints_y);
+	   for(int i=0;i<anchorPoints_x.size();i++){
+	   	   double shift_x = anchorPoints_x[i]-ref_x;
+	   	   double shift_y = anchorPoints_y[i]-ref_y;
 
-   //Calculate equally distributed x-values
-   double x_step = anchorPoints_x.back() / next_x_vals.size();
-   double x_point = 0;
+		   cout << "Before: anchorPoints" << i << ": " << anchorPoints_x[i] << ", " << anchorPoints_y[i] << endl;
 
-   //Calculate smoothed y-values from spine, transform back and copy to next_y_val
-   for(int i=0;i<next_x_vals.size();i++){		
-   		double y_point = s(x_point);		//smoothed y values from spine
-		
-		//Transform from local to global
-   		next_x_vals[i] = (x_point * cos(ref_yaw)-y_point*sin(ref_yaw)) + ref_x;
-   		next_y_vals[i] = (x_point * sin(ref_yaw)-y_point*cos(ref_yaw)) + ref_y;
+		   anchorPoints_x[i] = (shift_x*cos(0-ref_yaw)-shift_y*sin(0-ref_yaw));
+		   anchorPoints_y[i] = (shift_x*sin(0-ref_yaw)-shift_y*cos(0-ref_yaw));
 
-   		x_point += x_step;
-   }
-*/
-   cout << "ANKER_X: ";
-   for (auto i = anchorPoints_x.begin(); i != anchorPoints_x.end(); ++i)
-   		cout << *i << ' ';
+		   cout << "anchorPoints" << i << ": " << anchorPoints_x[i] << ", " << anchorPoints_y[i] << endl;
+	   }
+	
+	   //Calculate Spine
+	   tk::spline s;
+	   s.set_points(anchorPoints_x,anchorPoints_y);
 
-   cout << "\nANKER_y: ";
-   for (auto i = anchorPoints_y.begin(); i != anchorPoints_y.end(); ++i)
-   		cout << *i << ' ';
+	   //Calculate equally distributed x-values
+	   double x_step = anchorPoints_x.back() / next_x_vals.size();
+	   double x_point = 0;
 
-   cout << "\nCar_x:" << car_x << "    car_y:" << car_y << "    car_yaw:" << car_yaw << "\n\n";
-   
+	   //Calculate smoothed y-values from spine, transform back and copy to next_y_val
+	   for(int i=0;i<next_x_vals.size();i++){		
+	   		double y_point = s(x_point);		//smoothed y values from spine
+			
+			//Transform from local to global
+	   		next_x_vals[i] = (x_point * cos(ref_yaw)-y_point*sin(ref_yaw)) + ref_x;
+	   		next_y_vals[i] = (x_point * sin(ref_yaw)-y_point*cos(ref_yaw)) + ref_y;
+
+	   		x_point += x_step;
+	   		//cout << "x_point: " << x_point << endl;
+	   }
+	
+	   cout << "ANKER_X: ";
+	   for (auto i = anchorPoints_x.begin(); i != anchorPoints_x.end(); ++i)
+	   		cout << *i << ' ';
+
+	   cout << "\nANKER_y: ";
+	   for (auto i = anchorPoints_y.begin(); i != anchorPoints_y.end(); ++i)
+	   		cout << *i << ' ';
+
+	   cout << "\nCar_x:" << car_x << "    car_y:" << car_y << "    car_yaw:" << car_yaw << "\n\n";
+	}
 }
 
 //ToDo 
