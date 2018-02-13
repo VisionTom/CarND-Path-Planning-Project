@@ -10,7 +10,7 @@
 #include "json.hpp"
 #include "pathplanner.h"
 
-enum Mode { STRAIGHT, CIRCLE, NORMAL, FOLLOWLANE };
+enum Mode { STRAIGHT, CIRCLE, NORMAL, FOLLOWLANE, FOLLOWLANE_WITH_SPLINES };
 
 using namespace std;
 
@@ -162,6 +162,9 @@ int main(int argc, char *argv[]) {
           case 'f':
             mode = FOLLOWLANE;
             break;
+          case 'p':
+            mode = FOLLOWLANE_WITH_SPLINES;
+            break;
         }
       }
     }
@@ -230,8 +233,9 @@ int main(int argc, char *argv[]) {
             switch(mode){
               case STRAIGHT: pp->driveStraightLine(); break;
               case CIRCLE: pp->driveCircles(); break;
-              case NORMAL: pp->driveCircles(); break;
+              case NORMAL: pp->followLane_with_Splines(); break;
               case FOLLOWLANE: pp->followLane(); break;
+              case FOLLOWLANE_WITH_SPLINES: pp->followLane_with_Splines(); break;
             }
                       
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds

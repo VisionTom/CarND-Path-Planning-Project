@@ -1,6 +1,7 @@
 #include "pathplanner.h"
 #include <iostream>
 #include <math.h>
+#include "spline.h"
 
 double deg2rad(double x) { return x * M_PI / 180; }
 double rad2deg(double x) { return x * 180 / M_PI; }
@@ -53,7 +54,7 @@ void PathPlanner::extractParametersFromJson(json j){
 	// Sensor Fusion Data, a list of all other cars on the same side of the road.
 	//auto sensor_fusion = j[1]["sensor_fusion"];
 
-	cout << "car_x: " << car_x << "\ncar_y: " << car_y << endl;
+	//cout << "car_x: " << car_x << "\ncar_y: " << car_y << endl;
 }
 
 //Test#1: Simply drive in a straight line 
@@ -107,7 +108,7 @@ void PathPlanner::driveCircles(){
 
 //Test #3: Follow the current line. Problem: Harsh turns cause high jerks
 void PathPlanner::followLane(){
-	double dist_inc = 0.5;
+	double dist_inc = 0.4;
 	for(int i = 0; i < 50; i++)
     {
     	double next_s = car_s+(i+1)*dist_inc;
@@ -116,4 +117,43 @@ void PathPlanner::followLane(){
         next_x_vals.push_back(xy[0]);
         next_y_vals.push_back(xy[1]);
     }
+}
+
+//Test #4: Follow the current line using Splines
+void PathPlanner::followLane_with_Splines(){
+   
+   followLane();
+   
+   //Define 3 anchor points for calculating smooth spline
+
+   double anchorPoint_past_x;
+   double anchorPoint_past_y;
+
+   if(previous_path_x.size()>1){
+	   anchorPoint_past_x = previous_path_x[0];
+	   anchorPoint_past_y = previous_path_y[0];
+   }
+   else{
+   	   anchorPoint_past_x = next_x_vals[0];
+   	   anchorPoint_past_y = next_y_vals[0];
+   }
+
+   double anchorPoint_middle_x = next_x_vals[next_x_vals.size()/2-1];
+   double anchorPoint_middle_y = next_y_vals[next_y_vals.size()/2-1];
+
+   double anchorPoint_end_x = next_x_vals[next_x_vals.size()-1];
+   double anchorPoint_end_y = next_y_vals[next_y_vals.size()-1];
+
+   vector<double> anchorPoints_x(3);
+   anchorPoints_x = {anchorPoint_past_x, anchorPoint_middle_x, anchorPoint_end_x};
+
+   vector<double> anchorPoints_y(3);
+   anchorPoints_y = {anchorPoint_past_y, anchorPoint_middle_y, anchorPoint_end_y};
+   
+   tk::spline s;
+   s.set_points(anchorPoints_x,anchorPoints_y);
+
+   for(int i=0;i<next_x_vals.size();i++){
+   		next_y_vals[i] = s(next_x_vals[i]);
+   }
 }
