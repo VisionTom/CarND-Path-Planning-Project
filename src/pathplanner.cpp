@@ -56,23 +56,25 @@ void PathPlanner::extractParametersFromJson(json j){
 	//auto sensor_fusion = j[1]["sensor_fusion"];
 
 	//cout << "car_x: " << car_x << "\ncar_y: " << car_y << endl;
+
+	cout << "car_x: " << car_x << endl;
+	for(int i=0;i<previous_path_x.size();i++){
+		cout << "ausx_previous_path_" << i << ": " << x[i] << endl;
+	}
+	/*for(int i=0;i<next_x_vals.size();i++){
+		cout << "next_x_vals_" << i << "   x: " << next_x_vals[i] << "    y: " << next_y_vals[i] << endl;
+	}*/
 }
 
 //Test#1: Simply drive in a straight line 
 void PathPlanner::driveStraightLine(){
-	cout << "car_x: " << car_x << endl;
-	for(int i=0;i<previous_path_x.size();i++){
-		cout << "previous_path_" << i << ": " << previous_path_x[i] << endl;
-	}
-	for(int i=0;i<next_x_vals.size();i++){
-		cout << "next_x_vals_" << i << "   x: " << next_x_vals[i] << "    y: " << next_y_vals[i] << endl;
-	}
 
     for(int i = 0; i < FUTURE_PATH_SIZE; i++)
     {
           next_x_vals.push_back(car_x+(DIST_INC*i)*cos(deg2rad(car_yaw)));
           next_y_vals.push_back(car_y+(DIST_INC*i)*sin(deg2rad(car_yaw)));
     }
+
 }
 
 //Test#2: Drive the car in Circles
@@ -182,6 +184,13 @@ void PathPlanner::smooth_with_Splines(){
 	anchorPoints_y.push_back(prev_car_y);
 	anchorPoints_y.push_back(ref_y);
 
+	//Future Paths
+	anchorPoints_x.push_back(next_x_vals[FUTURE_PATH_SIZE/2]);
+	anchorPoints_x.push_back(next_x_vals[FUTURE_PATH_SIZE-1]);
+
+	anchorPoints_y.push_back(next_y_vals[FUTURE_PATH_SIZE/2]);
+	anchorPoints_y.push_back(next_y_vals[FUTURE_PATH_SIZE-1]);
+
 	//Transform from global to local car coordinates
 	for(int i=0;i<anchorPoints_x.size();i++){
 		//Shift 
@@ -217,15 +226,7 @@ void PathPlanner::smooth_with_Splines(){
 		//cout << "x_point: " << x_point << endl;
 	}
 
-	cout << "ANKER_X: ";
-	for (auto i = anchorPoints_x.begin(); i != anchorPoints_x.end(); ++i)
-		cout << *i << ' ';
-
-	cout << "\nANKER_y: ";
-	for (auto i = anchorPoints_y.begin(); i != anchorPoints_y.end(); ++i)
-		cout << *i << ' ';
-
-	cout << "\nCar_x:" << car_x << "    car_y:" << car_y << "    car_yaw:" << car_yaw << "\n\n";
+	//cout << "\nCar_x:" << car_x << "    car_y:" << car_y << "    car_yaw:" << car_yaw << "\n\n";
 }
 
 //ToDo 
