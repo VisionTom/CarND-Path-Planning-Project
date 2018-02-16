@@ -31,6 +31,7 @@ class PathPlanner
 
       	const double DIST_INC = 0.4; 
       	const int FUTURE_PATH_SIZE = 50;
+      	const double ref_vel = 49;
 
 		vector<double> map_waypoints_x;
 		vector<double> map_waypoints_y;

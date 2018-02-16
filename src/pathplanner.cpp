@@ -141,100 +141,91 @@ void PathPlanner::local2global(){
 void PathPlanner::smooth_with_Splines(){
 
 
-   cout << "Test1" << endl;
+   //Define anchor points for calculating smooth spline
+   vector<double> anchorPoints_x;
+   vector<double> anchorPoints_y;
 
    double previous_size = previous_path_x.size();
 
-   if(previous_size>2){
-   	   cout << "car_x: " << car_x << endl;
-   	   for(int i=0;i<next_x_vals.size();i++){
-   	   		cout << "previous_path_" << i << ": " << previous_path_x[i] << endl;
-   	   }
-	   for(int i=0;i<next_x_vals.size();i++){
-	   		cout << "next_x_vals_" << i << "   x: " << next_x_vals[i] << "    y: " << next_y_vals[i] << endl;
-	   }
+   double ref_x;
+   double ref_y;
+   double ref_yaw;
 
-	   //Define 3 anchor points for calculating smooth spline
-	   
-	   vector<double> anchorPoints_x;
-	   vector<double> anchorPoints_y;
+   double prev_car_x;
+   double prev_car_y;
 
-	   //Previous anchor points
-	   if(previous_size>2){
-		   //anchorPoints_x.push_back(previous_path_x[0]);				  //First Element x
-		   //anchorPoints_x.push_back(previous_path_x[previous_size/2]);  //Middle Element x
-		   anchorPoints_x.push_back(previous_path_x[previous_size-1]);  //Last Element x
+   if(previous_size<2){
+   		//Not enough previous values, so take the current ones
+		ref_yaw = deg2rad(car_yaw);
 
-		   //anchorPoints_y.push_back(previous_path_y[0]);				  //First Element 
-		   //anchorPoints_y.push_back(previous_path_y[previous_size/2]);  //Middle Element 
-		   anchorPoints_y.push_back(previous_path_y[previous_size-1]);  //Last Element 
-	   }
-	   /*else{
-			anchorPoints_x.push_back(next_x_vals[0]);			//First Element	x
-			anchorPoints_y.push_back(next_y_vals[0]);			//First Element y
-	   }*/
-	   
-	   double next_size = next_x_vals.size();
+		ref_x = car_x;
+   		ref_y = car_y;
+ 
+   		prev_car_x = ref_x - cos(car_yaw);
+   		prev_car_y = ref_y - sin(car_yaw);
+   	}
+   	else{
+		//Using previous values for stability reasons
+   		ref_x = previous_path_x[previous_size-1];
+   		ref_y = previous_path_y[previous_size-1];
+   		
+   		prev_car_x = previous_path_x[previous_size-2];
+   		prev_car_y = previous_path_y[previous_size-2];
 
-	   //Future anchor points
-	   anchorPoints_x.push_back(next_x_vals[next_size/2]);	//Middle Element x
-	   anchorPoints_x.push_back(next_x_vals[next_size-1]);	//Last Element x
+	    ref_yaw = atan2(ref_y-prev_car_y, ref_x-prev_car_x);
+   	}
 
-	   anchorPoints_y.push_back(next_y_vals[next_size/2]);	//Middle Element y 
-	   anchorPoints_y.push_back(next_y_vals[next_size-1]);	//Last Element y
+   	//Add anchor points from last 2 known historical points
+	anchorPoints_x.push_back(prev_car_x);
+	anchorPoints_x.push_back(ref_x);
 
+	anchorPoints_y.push_back(prev_car_y);
+	anchorPoints_y.push_back(ref_y);
 
-	   //Transform from global to local
-	   double ref_x = previous_path_x[previous_size-1];
-	   double ref_y = previous_path_y[previous_size-1];
+	//Transform from global to local car coordinates
+	for(int i=0;i<anchorPoints_x.size();i++){
+		//Shift 
+	    double shift_x = anchorPoints_x[i]-ref_x;
+	    double shift_y = anchorPoints_y[i]-ref_y;
+		cout << "Before: anchorPoints" << i << ": " << anchorPoints_x[i] << ", " << anchorPoints_y[i] << endl;
 
-	   double ref_x_prev = previous_path_x[previous_size-2];
-	   double ref_y_prev = previous_path_y[previous_size-2];
-
-	   double ref_yaw = atan2(ref_y-ref_y_prev, ref_x-ref_x_prev);
-
-	   for(int i=0;i<anchorPoints_x.size();i++){
-	   	   double shift_x = anchorPoints_x[i]-ref_x;
-	   	   double shift_y = anchorPoints_y[i]-ref_y;
-
-		   cout << "Before: anchorPoints" << i << ": " << anchorPoints_x[i] << ", " << anchorPoints_y[i] << endl;
-
-		   anchorPoints_x[i] = (shift_x*cos(0-ref_yaw)-shift_y*sin(0-ref_yaw));
-		   anchorPoints_y[i] = (shift_x*sin(0-ref_yaw)-shift_y*cos(0-ref_yaw));
-
-		   cout << "anchorPoints" << i << ": " << anchorPoints_x[i] << ", " << anchorPoints_y[i] << endl;
-	   }
-	
-	   //Calculate Spine
-	   tk::spline s;
-	   s.set_points(anchorPoints_x,anchorPoints_y);
-
-	   //Calculate equally distributed x-values
-	   double x_step = anchorPoints_x.back() / next_x_vals.size();
-	   double x_point = 0;
-
-	   //Calculate smoothed y-values from spine, transform back and copy to next_y_val
-	   for(int i=0;i<next_x_vals.size();i++){		
-	   		double y_point = s(x_point);		//smoothed y values from spine
-			
-			//Transform from local to global
-	   		next_x_vals[i] = (x_point * cos(ref_yaw)-y_point*sin(ref_yaw)) + ref_x;
-	   		next_y_vals[i] = (x_point * sin(ref_yaw)-y_point*cos(ref_yaw)) + ref_y;
-
-	   		x_point += x_step;
-	   		//cout << "x_point: " << x_point << endl;
-	   }
-	
-	   cout << "ANKER_X: ";
-	   for (auto i = anchorPoints_x.begin(); i != anchorPoints_x.end(); ++i)
-	   		cout << *i << ' ';
-
-	   cout << "\nANKER_y: ";
-	   for (auto i = anchorPoints_y.begin(); i != anchorPoints_y.end(); ++i)
-	   		cout << *i << ' ';
-
-	   cout << "\nCar_x:" << car_x << "    car_y:" << car_y << "    car_yaw:" << car_yaw << "\n\n";
+		//Rotate
+		anchorPoints_x[i] = (shift_x*cos(0-ref_yaw)-shift_y*sin(0-ref_yaw));
+		anchorPoints_y[i] = (shift_x*sin(0-ref_yaw)-shift_y*cos(0-ref_yaw));
+		cout << "anchorPoints" << i << ": " << anchorPoints_x[i] << ", " << anchorPoints_y[i] << endl;
 	}
+
+	//Calculate Spine
+	tk::spline s;
+	s.set_points(anchorPoints_x,anchorPoints_y);
+
+	//Calculate equally distributed x-values
+	double x_step = anchorPoints_x.back() / next_x_vals.size();
+	double x_point = 0;
+
+	//Calculate smoothed y-values from spine, transform back and copy to next_y_val
+	for(int i=0;i<next_x_vals.size();i++){		
+		double y_point = s(x_point);		//smoothed y values from spine
+
+	//Transform from local car coordinates to global
+		//Rotate
+		next_x_vals[i] = (x_point * cos(ref_yaw)-y_point*sin(ref_yaw)) + ref_x;
+		next_y_vals[i] = (x_point * sin(ref_yaw)-y_point*cos(ref_yaw)) + ref_y;
+
+		//Shift
+		x_point += x_step;
+		//cout << "x_point: " << x_point << endl;
+	}
+
+	cout << "ANKER_X: ";
+	for (auto i = anchorPoints_x.begin(); i != anchorPoints_x.end(); ++i)
+		cout << *i << ' ';
+
+	cout << "\nANKER_y: ";
+	for (auto i = anchorPoints_y.begin(); i != anchorPoints_y.end(); ++i)
+		cout << *i << ' ';
+
+	cout << "\nCar_x:" << car_x << "    car_y:" << car_y << "    car_yaw:" << car_yaw << "\n\n";
 }
 
 //ToDo 
