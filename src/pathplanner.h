@@ -18,8 +18,8 @@ class PathPlanner
 
         void driveStraightLine();
         void driveCircles();
-        void followLane(bool splinesActivated);  
-        void smooth_with_Splines();
+        void followLane();  
+        void followLane_with_Splines();
         
         vector<double> get_next_x_vals();
         vector<double> get_next_y_vals();

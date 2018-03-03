@@ -233,9 +233,9 @@ int main(int argc, char *argv[]) {
             switch(mode){
               case STRAIGHT: pp->driveStraightLine(); break;
               case CIRCLE: pp->driveCircles(); break;
-              case NORMAL: pp->followLane(true); break;
-              case FOLLOWLANE: pp->followLane(false); break;
-              case FOLLOWLANE_WITH_SPLINES: pp->followLane(true); break;
+              case FOLLOWLANE: pp->followLane(); break;
+              case FOLLOWLANE_WITH_SPLINES: pp->followLane_with_Splines(); break;
+              case NORMAL: pp->followLane_with_Splines(); break;
             }
                       
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
