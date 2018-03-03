@@ -56,12 +56,12 @@ void PathPlanner::extractParametersFromJson(json j){
 	//auto sensor_fusion = j[1]["sensor_fusion"];
 
 	//cout << "car_x: " << car_x << "\ncar_y: " << car_y << endl;
-
+	/*
 	cout << "car_x: " << car_x << endl;
 	for(int i=0;i<previous_path_x.size();i++){
 		cout << "ausx_previous_path_" << i << ": " << x[i] << endl;
 	}
-	/*for(int i=0;i<next_x_vals.size();i++){
+	for(int i=0;i<next_x_vals.size();i++){
 		cout << "next_x_vals_" << i << "   x: " << next_x_vals[i] << "    y: " << next_y_vals[i] << endl;
 	}*/
 }
@@ -156,7 +156,7 @@ void PathPlanner::smooth_with_Splines(){
    double prev_car_x;
    double prev_car_y;
 
-   if(previous_size<2){
+   //if(previous_size<2){
    		//Not enough previous values, so take the current ones
 		ref_yaw = deg2rad(car_yaw);
 
@@ -165,7 +165,7 @@ void PathPlanner::smooth_with_Splines(){
  
    		prev_car_x = ref_x - cos(car_yaw);
    		prev_car_y = ref_y - sin(car_yaw);
-   	}
+   	/*}
    	else{
 		//Using previous values for stability reasons
    		ref_x = previous_path_x[previous_size-1];
@@ -175,7 +175,7 @@ void PathPlanner::smooth_with_Splines(){
    		prev_car_y = previous_path_y[previous_size-2];
 
 	    ref_yaw = atan2(ref_y-prev_car_y, ref_x-prev_car_x);
-   	}
+   	}*/
 
    	//Add anchor points from last 2 known historical points
 	anchorPoints_x.push_back(prev_car_x);
@@ -185,11 +185,11 @@ void PathPlanner::smooth_with_Splines(){
 	anchorPoints_y.push_back(ref_y);
 
 	//Future Paths
-	anchorPoints_x.push_back(next_x_vals[FUTURE_PATH_SIZE/2]);
-	anchorPoints_x.push_back(next_x_vals[FUTURE_PATH_SIZE-1]);
+	anchorPoints_x.push_back(next_x_vals[next_x_vals.size()/2]);
+	anchorPoints_x.push_back(next_x_vals[next_x_vals.size()-1]);
 
-	anchorPoints_y.push_back(next_y_vals[FUTURE_PATH_SIZE/2]);
-	anchorPoints_y.push_back(next_y_vals[FUTURE_PATH_SIZE-1]);
+	anchorPoints_y.push_back(next_y_vals[next_y_vals.size()/2]);
+	anchorPoints_y.push_back(next_y_vals[next_y_vals.size()-1]);
 
 	//Transform from global to local car coordinates
 	for(int i=0;i<anchorPoints_x.size();i++){
@@ -226,7 +226,8 @@ void PathPlanner::smooth_with_Splines(){
 		//cout << "x_point: " << x_point << endl;
 	}
 
-	//cout << "\nCar_x:" << car_x << "    car_y:" << car_y << "    car_yaw:" << car_yaw << "\n\n";
+	cout << "\nCar_x:" << car_x << "    car_y:" << car_y << "    car_yaw:" << car_yaw << "\n\n";
+	
 }
 
 //ToDo 
