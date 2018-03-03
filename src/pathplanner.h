@@ -20,6 +20,8 @@ class PathPlanner
         void driveCircles();
         void followLane();  
         void followLane_with_Splines();
+        void check_lane_change();
+        void check_CarInFront();
         
         vector<double> get_next_x_vals();
         vector<double> get_next_y_vals();
@@ -31,8 +33,11 @@ class PathPlanner
 
       	const double DIST_INC = 0.4; 
       	const int FUTURE_PATH_SIZE = 50;
-      	const double ref_vel = 49;
-
+      	double ref_vel = 0;
+      	int lane = 1;
+      	const double SAFETY_DISTANCE = 30;
+      	int lane_change_delay = 0;
+		
 		vector<double> map_waypoints_x;
 		vector<double> map_waypoints_y;
 		vector<double> map_waypoints_s;
@@ -57,7 +62,7 @@ class PathPlanner
 
 		//ToDo
 		// Sensor Fusion Data, a list of all other cars on the same side of the road.
-		//auto sensor_fusion = j[1]["sensor_fusion"];
+		vector<vector<double>> sensorfusion;
 
 		// Future Path points 
 		vector<double> next_x_vals;
