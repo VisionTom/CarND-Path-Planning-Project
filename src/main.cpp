@@ -10,7 +10,7 @@
 #include "json.hpp"
 #include "pathplanner.h"
 
-enum Mode { STRAIGHT, CIRCLE, NORMAL, FOLLOWLANE, FOLLOWLANE_WITH_SPLINES };
+enum Mode { NORMAL, STRAIGHT, CIRCLE, FOLLOWLANE, FOLLOWLANE_WITH_SPLINES };
 
 using namespace std;
 
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
   Mode mode;
 
   //Default mode without any parameters
-  if(argc == 0){
+  if(argc <= 1){
     mode = NORMAL;  
   }
   else{
@@ -229,13 +229,13 @@ int main(int argc, char *argv[]) {
           	json msgJson;
 
             pp->extractParametersFromJson(j);
-            
+            cout << "Test";
             switch(mode){
-              case STRAIGHT: pp->driveStraightLine(); break;
+              case NORMAL: pp->followLane_with_Splines(); cout << "345"; break;
+              case STRAIGHT: pp->driveStraightLine(); cout << "asdf"; break;
               case CIRCLE: pp->driveCircles(); break;
               case FOLLOWLANE: pp->followLane(); break;
-              case FOLLOWLANE_WITH_SPLINES: pp->followLane_with_Splines(); break;
-              case NORMAL: pp->followLane_with_Splines(); break;
+              case FOLLOWLANE_WITH_SPLINES: pp->followLane_with_Splines(); cout << "123"; break;
             }
                       
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
