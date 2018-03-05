@@ -229,13 +229,13 @@ int main(int argc, char *argv[]) {
           	json msgJson;
 
             pp->extractParametersFromJson(j);
-            cout << "Test";
+
             switch(mode){
-              case NORMAL: pp->followLane_with_Splines(); cout << "345"; break;
-              case STRAIGHT: pp->driveStraightLine(); cout << "asdf"; break;
+              case NORMAL: pp->followLane_with_Splines(); break;
+              case STRAIGHT: pp->driveStraightLine(); break;
               case CIRCLE: pp->driveCircles(); break;
               case FOLLOWLANE: pp->followLane(); break;
-              case FOLLOWLANE_WITH_SPLINES: pp->followLane_with_Splines(); cout << "123"; break;
+              case FOLLOWLANE_WITH_SPLINES: pp->followLane_with_Splines(); break;
             }
                       
           	// TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds

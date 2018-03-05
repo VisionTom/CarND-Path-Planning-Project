@@ -33,6 +33,7 @@ class PathPlanner
 
       	const double DIST_INC = 0.4; 
       	const int FUTURE_PATH_SIZE = 50;
+      	const int MAX_SPEED = 49;
       	double ref_vel = 0;
       	int lane = 1;
       	const double SAFETY_DISTANCE = 30;

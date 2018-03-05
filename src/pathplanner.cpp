@@ -127,7 +127,7 @@ void PathPlanner::local2global(){
 	
 }
 
-//Test #4: Follow the current line using Splines
+//Follow the current line using Splines
 void PathPlanner::followLane_with_Splines(){
 
 	check_CarInFront();
@@ -168,15 +168,12 @@ void PathPlanner::followLane_with_Splines(){
 	}
 
     //In Frenet add spaced points ahead of the starting reference
-	//vector<double> next_wp0 = getXY(car_s+30, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
-	vector<double> next_wp1 = getXY(car_s+45, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
+	vector<double> next_wp1 = getXY(car_s+55, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 	vector<double> next_wp2 = getXY(car_s+90, (2+4*lane), map_waypoints_s, map_waypoints_x, map_waypoints_y);
 
-	//ptsx.push_back(next_wp0[0]);
 	ptsx.push_back(next_wp1[0]);
 	ptsx.push_back(next_wp2[0]);
 
-	//ptsy.push_back(next_wp0[1]);
 	ptsy.push_back(next_wp1[1]);
 	ptsy.push_back(next_wp2[1]);
 
@@ -238,46 +235,89 @@ void PathPlanner::followLane_with_Splines(){
 }
 
 void PathPlanner::check_lane_change(){
-	//Prepare Lange Change
 
+	//lane_change_delay is a counter, so the car does not change lanes too fast again.
 	if(lane_change_delay>0){
-		cout << lane_change_delay << endl;
+		cout << "Lanechange_Delay: " << lane_change_delay << endl;
 		return;
 	}
 
+	//Init
 	vector<int> lanes_possible;
-	
+	double distance_to_closest_car_in_lane_in_front[3]; //Saving the distances, for when we have more than 1 possible lane to change
+		
+	distance_to_closest_car_in_lane_in_front[0] = 99999;
+	distance_to_closest_car_in_lane_in_front[1] = 99999;
+	distance_to_closest_car_in_lane_in_front[2] = 99999;
+
 	if(lane==1){
 		lanes_possible.push_back(0); 
 		lanes_possible.push_back(2);
+		cout << "I have to break - can i change to lane 0 or 2?" << endl;
 	}
 	else{
 		lanes_possible.push_back(1);
+		cout << "I have to break - can i change to lane 1?" << endl;
 	}
 
-	cout << "1" << endl;
-	//Check all lanes, if change is possible
+	//Check for all possible lanes, if a change is possible
 	for(int l=0;l<lanes_possible.size();l++){
+		
 		//Check all cars from sensorfusion
-		cout << "2" << endl;
 		for (int i=0;i<sensorfusion.size();i++){
 			float otherCar_d = sensorfusion[i][6]; //#get the d-value (horizontal position) from the i-th car
-			cout << "Lane #" << lanes_possible[l] << " - otherCar_d " << otherCar_d << "    -- muss kleiner als " << (4*(lanes_possible[l]+1)) << " und größer als " << (4*lanes_possible[l]) << endl;
+
 			//Is the car is in the lane we want to change into?
 			if((otherCar_d < (4*(lanes_possible[l]+1)) && otherCar_d > (4*lanes_possible[l]))){
+				
+				//Distance between my car and the car #i
 				double otherCar_s = sensorfusion[i][5]; //#get the s-value from the i-th car
 				double distance_to_car = otherCar_s-car_s;
-				cout << "4" << " - distance_to_car " << distance_to_car << endl;
-				if(abs(distance_to_car)<SAFETY_DISTANCE){	
-					cout << "5" << endl;
+
+				//lane in lanes_possible[l] is checked for cars in front. 
+				//The array distance_to_closest_car_in_lane_in_front will have the closest car in front for every lane.
+				//This is used if several lanes are possible
+				if((distance_to_car > 0) && (distance_to_car < distance_to_closest_car_in_lane_in_front[lanes_possible[l]])){
+					distance_to_closest_car_in_lane_in_front[lanes_possible[l]] = distance_to_car;
+					cout << "There is a car on lane " << lanes_possible[l] << " with a distance of" << distance_to_car << endl;
+				}
+
+				//Check if there is a car in a lane to change.
+				//Check if the car is inside the SAFETY-zone (from +SAFETY_DISTANCE to SAFETY_DISTANCE/3) 
+				if((distance_to_car<SAFETY_DISTANCE) && distance_to_car>(SAFETY_DISTANCE/-3)){	
+					cout << "I can't change to lane " << lanes_possible[l] << ". The distance is only " << distance_to_car << endl;
 					lanes_possible.erase(lanes_possible.begin()+l); //Car is in the way. Lanechange to index l is not possible.
+					l--; //because of the erase, to get the order right
+					
 					break;
 				}
 			}
 		}
 	}
+	
+	//Going through the checks and decide for the best lane to change.
 	for(int l=0;l<lanes_possible.size();l++){
-		lane = lanes_possible[l];	//Change lane
+		if(lanes_possible.size()>1){
+			if(distance_to_closest_car_in_lane_in_front[lanes_possible[0]] > distance_to_closest_car_in_lane_in_front[lanes_possible[1]]){
+				lane = lanes_possible[0];
+				cout << "** Choosing between 0 and 2... Let's have a look on the cars in front of these lanes: " << endl;
+				cout << "The car in front in lane " << lanes_possible[0] << " has a diststance of: "<< distance_to_closest_car_in_lane_in_front[lanes_possible[0]] << endl;
+				cout << "The car in front in lane " << lanes_possible[1] << " has a diststance of: "<< distance_to_closest_car_in_lane_in_front[lanes_possible[1]] << endl;
+				cout << "Well, lane " << lanes_possible[0]  << " has more free space. Let's go there!" << endl << endl;	
+			}
+			else{
+				lane = lanes_possible[1];
+
+				cout << "** Choosing between 0 and 2... Let's have a look on the cars in front of these lanes: " << endl;
+				cout << "The car in front in lane " << lanes_possible[0] << " has a diststance of: " << distance_to_closest_car_in_lane_in_front[lanes_possible[0]] << endl;
+				cout << "The car in front in lane " << lanes_possible[1] << " has a diststance of: " << distance_to_closest_car_in_lane_in_front[lanes_possible[1]] << endl;
+				cout << "Well, lane " << lanes_possible[1]  << " has more free space. Let's go there!" << endl << endl;	
+			}
+		}
+		else{
+			lane = lanes_possible[l];	//Change lane
+			cout << "Lane " << lanes_possible[l] << " is good. Choosing this lane. BYEBYE." << endl;
+		}
 		lane_change_delay = 50;
 	}
 }
@@ -287,54 +327,63 @@ void PathPlanner::check_CarInFront(){
 
 	bool too_close, very_close, emergency_close = false; 
 	double otherCar_speed = -1;
+
+	//Checking for distances to other cars and their speed.
 	for (int i=0;i<sensorfusion.size();i++){
 		float otherCar_d = sensorfusion[i][6]; //#get the d-value (horizontal position) from the i-th car
-		//cout << "a" << endl;
+		
 		//If the car is in our lane
 		if(otherCar_d < (4*(lane+1)) && otherCar_d > (4*lane)){
-			//cout << "b" << endl;
 			double otherCar_s = sensorfusion[i][5]; //#get the s-value from the i-th car
 			double distance_to_car = otherCar_s-car_s;
 			
 			if(distance_to_car<SAFETY_DISTANCE && distance_to_car>0){
-				//cout << "c" << endl;
-				too_close = 1;
+				too_close = true;
 				double otherCar_vx = sensorfusion[i][3];
 				double otherCar_vy = sensorfusion[i][4];
-				otherCar_speed = sqrt((otherCar_vx)*(otherCar_vx)+(otherCar_vy)*(otherCar_vy));
+				otherCar_speed = sqrt(abs((otherCar_vx)*(otherCar_vx))+abs((otherCar_vy)*(otherCar_vy))); //pythagoras 
+				otherCar_speed = otherCar_speed * 3.6 / 1.6; // convertion from m/s to kmh. and then from km/h to mp/h
+
 				if(distance_to_car<SAFETY_DISTANCE/3){
-					//cout << "d" << endl;
-					very_close = 1;
+					very_close = true;
 					if(distance_to_car<SAFETY_DISTANCE/6){
-						emergency_close = 1;
+						emergency_close = true;
 					}
 				}
 			}
 		}
 	}
 
-	//keep speed of the car in front
+	//Regulating the speed and distance 
 	if(too_close){
-		//cout << "tooclose" << endl;
+		cout << "car_speed: " << car_speed << "     otherCar_speed: " << otherCar_speed << endl;
+		check_lane_change();
+
+		//don't drive a lower speed than the car in front of our car
 		if(!(car_speed < otherCar_speed) && car_speed > 1){
-			//cout << "smaller" << ref_vel << endl;
-			ref_vel-=0.224;
-			//lane = 2;
-			check_lane_change();
+			ref_vel-=0.3;
+
 			if(very_close){
-				//cout << "bigger" << endl;
+				cout << "Harsher break." << endl;
 				ref_vel-=0.8;
+
 				if(emergency_close){
-					ref_vel-=2;
+					cout << "EMERGENCY BREAK. HOLD YOUR HAT." << endl;
+					ref_vel-=3;
 				}
 			}
 		}
 	}
-	else if(ref_vel<48){
-		ref_vel+=1.0;
+
+	//Max Speed
+	else if(ref_vel<MAX_SPEED){
+		ref_vel+=0.8;
+	}
+	//don't drive backwards
+	if(ref_vel<=0){
+		ref_vel = 0;
 	}
 
 	lane_change_delay--;
 }
 
-//3. FSM
